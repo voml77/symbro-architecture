@@ -1,0 +1,31 @@
+# SymBro Architecture
+
+SymBro is a privacy-first personal AI system built around deterministic orchestration, governed memory and knowledge, and controlled use of external AI capabilities.
+
+This repository documents the architecture of SymBro and the reasoning behind selected design decisions. The SymBro source code remains private; this repository contains architecture documentation only.
+
+## Published Architecture Views
+
+The architecture is being published incrementally. The current release contains:
+
+1. **System Context** — the system boundary, sole user, and controlled relationship with external AI capabilities.
+2. **Architecture Overview** — the major architectural responsibilities across client, server, source orchestration, persistence, and external AI.
+3. **Interactive Runtime & Decision Flow** — the controlled path of an interactive request through routing, context preparation, retrieval evaluation, agent control, prompt compilation, and response generation.
+
+The corresponding diagrams are available in [`diagrams/`](diagrams/).
+
+## Design Rationale
+
+The diagrams describe the structural views. [`ARCHITECTURE_RATIONALE.md`](ARCHITECTURE_RATIONALE.md) explains selected design decisions, deliberately avoided shortcuts, and their trade-offs.
+
+The rationale grows together with the published architecture views.
+
+## Scope
+
+This repository intentionally does not contain the SymBro application source code, internal Structurizr model, or implementation-specific configuration.
+
+## License
+
+The architecture documentation and diagrams in this repository are licensed under the [Creative Commons Attribution 4.0 International License](LICENSE).
+
+Copyright © 2026 Vadim Ott.
