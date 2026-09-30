@@ -11,6 +11,8 @@ The architecture is being published incrementally. The current release contains:
 1. **System Context** — the system boundary, sole user, and controlled relationship with external AI capabilities.
 2. **Architecture Overview** — the major architectural responsibilities across client, server, source orchestration, persistence, and external AI.
 3. **Interactive Runtime & Decision Flow** — the controlled path of an interactive request through routing, context preparation, retrieval evaluation, agent control, prompt compilation, and response generation.
+4. **Routing & Model Execution** — the governed routing path from intent correction through domain and context routing to controlled local or external model execution.
+5. **Memory & Knowledge Lifecycle** — the governed path from interactions, source packages, and research results through candidate validation and lifecycle management to domain-specific canonical promotion.
 
 The corresponding diagrams are available in [`diagrams/`](diagrams/).
 

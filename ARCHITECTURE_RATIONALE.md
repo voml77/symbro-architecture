@@ -2,7 +2,7 @@
 
 This document complements the published SymBro architecture views with the reasoning behind selected structural decisions. The diagrams show how responsibilities are separated; this rationale explains why those boundaries exist, which alternatives were deliberately avoided, and which trade-offs follow from them.
 
-The document grows together with the published architecture series. This first release covers Views 1–3 only.
+The document grows together with the published architecture series. This release covers Views 1–5.
 
 ## 1. System Context
 
@@ -58,10 +58,54 @@ SymBro therefore keeps Prompt Compilation deterministic: it compiles prepared in
 
 **Trade-off:** Upstream components must provide sufficiently structured and complete inputs; Prompt Compilation cannot silently repair missing architectural decisions.
 
+## 4. Routing & Model Execution
+
+### Routing authority and model execution control remain separate
+
+SymBro separates the decision about how a request should be routed from the control of where and under which permitted capability it is ultimately executed. Intent correction, embedding-based routing, domain routing, and context routing progressively prepare the route; Model Execution Control receives that result and governs downstream execution without becoming another routing authority.
+
+A simpler design could combine routing and execution control in a single component. That would reduce the number of explicit boundaries, but it would also create a second place where routing decisions could be reinterpreted or silently overridden.
+
+The architecture therefore treats the route produced by Context Routing as an input to Model Execution Control rather than as an invitation to route the request again. Model Execution Control governs execution against permitted local or external capabilities while preserving the authority of the upstream routing path.
+
+**Trade-off:** Routing and execution require an explicit contract between responsibilities, and execution control cannot silently compensate for weak or incomplete routing decisions.
+
+### External routing fallback does not become a second routing authority
+
+SymBro may use an external routing fallback when local deterministic and semantic mechanisms cannot resolve an intent with sufficient confidence. The fallback provides a controlled routing result back into the same routing path; it does not own downstream execution and does not establish a parallel orchestration path.
+
+Allowing an external model to route and execute a request directly would simplify unresolved cases, but it would also bypass the responsibility boundaries that keep external probabilistic capability subordinate to SymBro's orchestration.
+
+**Trade-off:** Unresolved routing cases must return through the governed routing flow before execution can proceed.
+
+## 5. Memory & Knowledge Lifecycle
+
+### A candidate is not canonical state
+
+Information entering SymBro from an interaction, a normalized source package, or a governed research result does not become trusted Memory or Knowledge merely because it has been extracted or classified. The Librarian produces typed candidates, which must pass validation and the candidate lifecycle before they can be considered for domain-specific promotion.
+
+A simpler design could persist extracted information directly into active Memory or Knowledge. That would shorten the ingestion path, but it would collapse extraction, validation, review, and activation into a single probabilistic step.
+
+SymBro therefore keeps candidate state explicitly separate from canonical state. Candidate Validation establishes structural and domain admissibility; Candidate Lifecycle governs review states such as verification, rejection, merge, or supersession; Domain Promotion determines whether a verified candidate may enter a canonical domain under that domain's policy.
+
+**Trade-off:** Knowledge acquisition requires more lifecycle stages and explicit state transitions, but probabilistic extraction cannot silently become trusted system state.
+
+### Promotion is domain-specific rather than a universal activation step
+
+Personal Memory, Knowledge, and Signal do not share identical admission semantics. Personal Memory requires explicit user opt-in, Knowledge is promoted under its activation policy, and Signal remains inactive by default.
+
+A universal activation mechanism would be simpler to implement, but it would erase meaningful differences between personal memory, reusable knowledge, and weaker interest or context signals.
+
+The architecture therefore places Domain Promotion after the shared candidate lifecycle and applies domain-specific governance only at the point where verified candidates may become canonical state.
+
+**Trade-off:** Each canonical domain requires its own promotion semantics instead of relying on one generic activation rule.
+
 ## Published Views in This Release
 
 1. **System Context** — SymBro's system boundary, sole user, and controlled relationship with external AI capabilities.
 2. **Architecture Overview** — the major client, server, source-orchestration, persistence, and external-AI responsibilities.
 3. **Interactive Runtime & Decision Flow** — the controlled path from an interactive request through routing, context preparation, retrieval evaluation, Agent Control, prompt compilation, and response generation.
+4. **Routing & Model Execution** — the governed routing path from intent correction through domain and context routing to controlled local or external model execution.
+5. **Memory & Knowledge Lifecycle** — the governed path from interactions, source packages, and research results through candidate validation and lifecycle management to domain-specific canonical promotion.
 
 Further rationale will be added as the remaining architecture views are published.
