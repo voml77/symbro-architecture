@@ -2,7 +2,7 @@
 
 This document complements the published SymBro architecture views with the reasoning behind selected structural decisions. The diagrams show how responsibilities are separated; this rationale explains why those boundaries exist, which alternatives were deliberately avoided, and which trade-offs follow from them.
 
-The document grows together with the published architecture series. This release covers Views 1–5.
+The document grows together with the published architecture series. This release covers all eight published architecture views.
 
 ## 1. System Context
 
@@ -100,6 +100,76 @@ The architecture therefore places Domain Promotion after the shared candidate li
 
 **Trade-off:** Each canonical domain requires its own promotion semantics instead of relying on one generic activation rule.
 
+## 6. Knowledge Retrieval
+
+### Semantic search locates candidates; canonical persistence decides what is valid
+
+SymBro deliberately separates semantic discovery from canonical authority. The semantic index is used to locate potentially relevant Knowledge Artifacts, while canonical persistence remains responsible for their authoritative content and current eligibility.
+
+A simpler RAG design could treat the vector database as both search mechanism and knowledge store. That would reduce retrieval steps, but it would also make derived index state authoritative and allow stale or otherwise ineligible indexed content to influence generated answers.
+
+Knowledge Retrieval therefore uses the semantic index only to identify candidate artifact references. Retrieved candidates are rehydrated from canonical persistence and validated against the current canonical state before structured retrieval results are returned downstream.
+
+This principle can be summarized as:
+
+**Chroma locates. SQLite decides.**
+
+**Trade-off:** Retrieval requires an additional canonical rehydration and validation step instead of returning vector-search results directly, but semantic index state cannot silently override canonical knowledge state.
+
+### Retrieval remains read-only
+
+Knowledge Retrieval evaluates and returns currently valid Knowledge Artifacts. It does not repair stale index entries, mutate canonical state, or perform lifecycle transitions while serving a retrieval request.
+
+Combining retrieval and repair could make individual requests appear self-healing, but it would introduce write-side effects into a read path and make retrieval behavior harder to reason about.
+
+Repair and synchronization therefore remain separate responsibilities.
+
+**Trade-off:** Stale or invalid index state may require independent maintenance rather than being repaired inline during a user request.
+
+## 7. Semantic Index Lifecycle
+
+### The semantic index is derived and rebuildable state
+
+The Semantic Index is not a second knowledge authority. It is a derived locator built from eligible canonical Knowledge Artifacts and can be recreated from canonical persistence.
+
+Treating the index as independently authoritative would simplify some vector-centric implementations, but it would create two competing sources of truth and make synchronization failures architecturally ambiguous.
+
+Semantic Index Management therefore derives index operations from canonical state and applies idempotent UPSERT, DELETE, or NO-OP decisions. Embeddings are produced for eligible artifacts as part of this controlled synchronization path.
+
+**Trade-off:** Index management requires explicit synchronization and compatibility rules, but loss or corruption of the semantic index does not imply loss of canonical knowledge.
+
+### Rebuilds use generations instead of replacing the active index in place
+
+A full semantic-index rebuild must not require the currently active index to disappear while a replacement is being constructed.
+
+Rebuilding the active generation in place would be simpler, but a failed or incomplete rebuild could leave retrieval without a valid semantic locator.
+
+SymBro therefore builds a shadow generation from eligible canonical state, validates it, activates it atomically, and only then retires the previous generation. The shadow generation is derived index state rather than a separate software component.
+
+**Trade-off:** Generation management introduces additional lifecycle state and storage during rebuilds, but the active index remains available until its replacement has been successfully validated.
+
+## 8. Knowledge Gap & Research
+
+### Retrieval and research are different responsibilities
+
+An unresolved knowledge need does not cause Knowledge Retrieval to become a research mechanism. Retrieval answers a bounded question: what currently governed Knowledge Artifacts are available inside SymBro? Research addresses a different question: what should happen when the required knowledge is not available there?
+
+A simpler design could let retrieval fall through directly to an external model or web-capable service whenever no useful result is found. That would blur the boundary between trusted internal knowledge and newly acquired external information.
+
+SymBro therefore evaluates unresolved knowledge needs separately. Knowledge Gap Evaluation can request governed research execution through Model Execution Control, which may use permitted external AI capabilities. The resulting research output returns through the Librarian and the normal candidate-governance lifecycle rather than entering canonical Knowledge directly.
+
+**Trade-off:** Newly researched information is not immediately available as trusted canonical knowledge; it must first pass through the same governance boundaries as other candidate information.
+
+### External capability cannot write canonical knowledge directly
+
+External AI services provide capabilities, not authority over SymBro's internal knowledge state.
+
+Allowing research output to be written directly into canonical persistence would shorten the research path, but it would allow probabilistic external output to bypass validation, candidate lifecycle management, and domain promotion.
+
+Research results therefore re-enter SymBro through the Librarian. From that point onward they are treated as governed candidate information and must earn canonical status through the existing lifecycle.
+
+**Trade-off:** Research acquisition requires an additional governance path before information becomes reusable canonical Knowledge, but external capability cannot silently become internal truth.
+
 ## Published Views in This Release
 
 1. **System Context** — SymBro's system boundary, sole user, and controlled relationship with external AI capabilities.
@@ -107,5 +177,6 @@ The architecture therefore places Domain Promotion after the shared candidate li
 3. **Interactive Runtime & Decision Flow** — the controlled path from an interactive request through routing, context preparation, retrieval evaluation, Agent Control, prompt compilation, and response generation.
 4. **Routing & Model Execution** — the governed routing path from intent correction through domain and context routing to controlled local or external model execution.
 5. **Memory & Knowledge Lifecycle** — the governed path from interactions, source packages, and research results through candidate validation and lifecycle management to domain-specific canonical promotion.
-
-Further rationale will be added as the remaining architecture views are published.
+6. **Knowledge Retrieval** — the read-only retrieval path from query embedding and semantic candidate discovery to canonical rehydration, validation, and structured retrieval results.
+7. **Semantic Index Lifecycle** — the controlled synchronization and generation lifecycle of a rebuildable semantic locator derived from canonical knowledge.
+8. **Knowledge Gap & Research** — the governed escalation path for unresolved knowledge needs from gap evaluation through permitted external research capability and back into candidate governance.

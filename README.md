@@ -13,6 +13,9 @@ The architecture is being published incrementally. The current release contains:
 3. **Interactive Runtime & Decision Flow** — the controlled path of an interactive request through routing, context preparation, retrieval evaluation, agent control, prompt compilation, and response generation.
 4. **Routing & Model Execution** — the governed routing path from intent correction through domain and context routing to controlled local or external model execution.
 5. **Memory & Knowledge Lifecycle** — the governed path from interactions, source packages, and research results through candidate validation and lifecycle management to domain-specific canonical promotion.
+6. **Knowledge Retrieval** — the read-only retrieval path from query embedding and semantic candidate discovery to canonical rehydration, validation, and structured retrieval results.
+7. **Semantic Index Lifecycle** — the controlled synchronization and generation lifecycle of a rebuildable semantic locator derived from canonical knowledge.
+8. **Knowledge Gap & Research** — the governed escalation path for unresolved knowledge needs from gap evaluation through permitted external research capability and back into candidate governance.
 
 The corresponding diagrams are available in [`diagrams/`](diagrams/).
 
